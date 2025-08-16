@@ -6,7 +6,7 @@
 #include <stdbool.h>
 
 
-#define MAP_WIDTH SCREEN_HEIGHT
+#define MAP_WIDTH SCREEN_WIDTH
 #define MAP_HEIGHT SCREEN_HEIGHT
 
 

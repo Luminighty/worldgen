@@ -20,63 +20,11 @@ void game_init() {
 	regen_world();
 }
 
-int pass_buttons[10] = {
-	KEY_ONE,
-	KEY_TWO,
-	KEY_THREE,
-	KEY_FOUR,
-	KEY_FIVE,
-	KEY_SIX,
-	KEY_SEVEN,
-	KEY_EIGHT,
-	KEY_NINE,
-};
-
-
 void game_update() {
-	float dt = GetFrameTime();
 	bool dirty = false;
-	for (int pass_idx = 0; pass_idx < 10; pass_idx++) {
-		if (IsKeyPressed(pass_buttons[pass_idx])) {
-			printf("PASS: %s\n", noise_passes[pass_idx].key);
-			fflush(stdout);
-			game.selected_pass = pass_idx;
-		}
-	}
-
-	if (IsKeyDown(KEY_RIGHT)) {
-		noise_passes[game.selected_pass].period += 0.01;
-		dirty = true;
-	}
-	if (IsKeyDown(KEY_LEFT)) {
-		noise_passes[game.selected_pass].period -= 0.01;
-		dirty = true;
-	}
-	if (IsKeyDown(KEY_UP)) {
-		noise_passes[game.selected_pass].threshold += 0.01;
-		dirty = true;
-	}
-	if (IsKeyDown(KEY_DOWN)) {
-		noise_passes[game.selected_pass].threshold -= 0.01;
-		dirty = true;
-	}
 	if (IsKeyDown(KEY_ENTER)) {
 		game.seed = rand();
 		dirty = true;
-	}
-	if (
-		IsKeyReleased(KEY_RIGHT) || 
-		IsKeyReleased(KEY_LEFT) || 
-		IsKeyReleased(KEY_UP) || 
-		IsKeyReleased(KEY_DOWN)
-	) {
-		printf(
-			"[%s]: threshold: %f, period: %f\n", 
-			noise_passes[game.selected_pass].key,
-			noise_passes[game.selected_pass].threshold,
-			noise_passes[game.selected_pass].period
-		);
-		fflush(stdout);
 	}
 	if (dirty)
 		regen_world();
@@ -97,5 +45,7 @@ void game_draw() {
 	EndTextureMode();
 
 	DrawTexturePro(render_target.texture, RENDER_SOURCE, RENDER_DEST, (Vector2){0}, 0, WHITE);
-	EndTextureMode();
+	if (worldgen_debug()) {
+		regen_world();
+	}
 }

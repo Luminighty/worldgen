@@ -5,7 +5,7 @@
 
 
 Glyph tile_glyphs[] = {
-	[TILE_FLOOR] = glyph(0x00, PAL_BLACK, PAL_BLACK),
+	[TILE_AIR] = glyph(0x00, PAL_BLACK, PAL_BLACK),
 	[TILE_DIRT] = glyph(0xB1, PAL_BROWN, PAL_DARK_BROWN),
 	[TILE_STONE] = glyph(0xDB, PAL_GRAY(0x69), PAL_GRAY(0x69)),
 	[TILE_COAL] = glyph(0x0F, PAL_BLACK, PAL_GRAY(0x69)),

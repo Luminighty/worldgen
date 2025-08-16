@@ -5,7 +5,7 @@
 
 
 typedef enum {
-	TILE_FLOOR,
+	TILE_AIR,
 	TILE_BEDROCK,
 	TILE_DIRT,
 	TILE_STONE,

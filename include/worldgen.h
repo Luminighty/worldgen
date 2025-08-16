@@ -13,9 +13,8 @@ typedef struct {
 } NoisePass;
 
 
-extern NoisePass noise_passes[];
-
 void worldgen_generate(Map* map, long seed);
+bool worldgen_debug();
 
 
 #endif // WORLDGEN_H
