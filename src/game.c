@@ -1,18 +1,22 @@
 #include "game.h"
+#include "config.h"
 #include "display.h"
+#include "map.h"
 #include "worldgen.h"
 #include <raylib.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include "raygui.h"
 
-Game game = {};
+Game game = {0};
 RenderTexture2D render_target;
 
 static void regen_world() {
 	game.map = map_create();
 	worldgen_generate(&game.map, game.seed);
 	map_draw_border(&game.map);
+	GuiLoadStyle("assets/raygui_style_terminal.rgs");
 }
 
 void game_init() {
@@ -22,10 +26,20 @@ void game_init() {
 
 void game_update() {
 	bool dirty = false;
-	if (IsKeyDown(KEY_ENTER)) {
+	if (IsKeyReleased(KEY_ENTER)) {
 		game.seed = rand();
 		dirty = true;
 	}
+	static const int STEP = 4;
+	if (IsKeyDown(KEY_LEFT) && game.x > 0)
+		game.x -= STEP;
+	if (IsKeyDown(KEY_RIGHT) && game.x < MAP_WIDTH - SCREEN_WIDTH)
+		game.x += STEP;
+	if (IsKeyDown(KEY_UP) && game.y > 0)
+		game.y -= STEP;
+	if (IsKeyDown(KEY_DOWN) && game.y < MAP_HEIGHT - SCREEN_HEIGHT)
+		game.y += STEP;
+
 	if (dirty)
 		regen_world();
 }

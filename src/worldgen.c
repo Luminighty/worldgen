@@ -1,12 +1,57 @@
 #include "worldgen.h"
 #include "tile.h"
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
 #include "OpenSimplex2S.h"
 #include "raygui.h"
 #include "raylib.h"
+#include "vec.h"
+#include "biome.h"
 
 OpenSimplexEnv* ose = NULL;
+DATypedef(Gradients, OpenSimplexGradients*);
+
+size_t _g_head = 0;
+Gradients _gradiants = {0};
+OpenSimplexGradients* gradient_next(long seed) {
+	OpenSimplexGradients* result = NULL;
+	if (_g_head >= _gradiants.count) {
+		result = newOpenSimplexGradients(ose, seed + _g_head);
+		da_push(_gradiants, result);
+	} else {
+		result = _gradiants.items[_g_head];
+	}
+	_g_head++;
+	return result;
+}
+
+void gradients_free() {
+	for (size_t i = 0; i < _gradiants.count; i++)
+		free(_gradiants.items[i]);
+	_gradiants.count = 0;
+	_g_head = 0;
+}
+
+int gradient_reserve(long seed) {
+	int head = _g_head;
+	gradient_next(seed);
+	return head;
+}
+
+void gradient_pop(int new_head) {
+	_g_head = new_head;
+}
+
+int gradient_push() {
+	return _g_head;
+}
+
+OpenSimplexGradients* gradient_get(int index) {
+	return _gradiants.items[index];
+}
+
 
 static inline double grad_noise(double period, OpenSimplexGradients* gradient, int x, int y) {
 	return noise2(
@@ -25,80 +70,183 @@ static inline bool is_pass(NoisePass pass, OpenSimplexGradients* gradient, int x
 	for(int x = 0; x < MAP_WIDTH; x++)
 
 
+static int biome_grad_moisture = 0;
+static int biome_grad_temperature = 0;
+static int biome_grad_magic = 0;
+static double biome_fungal_treshold = 0.6;
+static double biome_crystal_treshold = 0.7;
+static double biome_period = 100;
+
+static Biome biome_get(int x, int y) {
+	OpenSimplexGradients* moist_grad = gradient_get(biome_grad_moisture);
+	OpenSimplexGradients* magic_grad = gradient_get(biome_grad_magic);
+	OpenSimplexGradients* temp_grad = gradient_get(biome_grad_temperature);
+	double moist = grad_noise(biome_period, moist_grad, x, y);
+	double magic = grad_noise(biome_period, magic_grad, x, y);
+	double temp = grad_noise(biome_period, temp_grad, x, y);
+	if (magic < -0.9)
+		return BIOME_VOID;
+	if (magic > 0.9)
+		return BIOME_HELLSCAPE;
+
+	enum {
+		TEMP_HOT,
+		TEMP_NORM,
+		TEMP_COLD
+	} temp_kind = TEMP_NORM;
+	enum {
+		MOIST_DRY,
+		MOIST_NORM,
+		MOIST_MOIST,
+	} moist_kind = MOIST_NORM;
+
+	if (temp > 0.7) temp_kind = TEMP_HOT;
+	if (temp < -0.7) temp_kind = TEMP_COLD;
+	if (moist > 0.4) moist_kind = MOIST_MOIST;
+	if (moist < -0.6) moist_kind = MOIST_DRY;
+
+	switch (moist_kind) {
+	case MOIST_DRY: switch (temp_kind) {
+		case TEMP_HOT: return BIOME_MAGMA;
+		case TEMP_NORM: return BIOME_CRYSTAL;
+		case TEMP_COLD: return BIOME_PLAINS;
+	}; break;
+	case MOIST_NORM: switch (temp_kind) {
+		case TEMP_HOT: return BIOME_ASH_FOREST;
+		case TEMP_NORM: return BIOME_PLAINS;
+		case TEMP_COLD: return BIOME_ICE;
+	}; break;
+	case MOIST_MOIST: switch (temp_kind) {
+		case TEMP_HOT: return BIOME_GAS;
+		case TEMP_NORM: return BIOME_FUNGAL;
+		case TEMP_COLD: return BIOME_ICE;
+	}; break;
+	}
+	return BIOME_PLAINS;
+}
+
+static void pass_biomes(Map* map, long seed) {
+	biome_grad_moisture = gradient_reserve(seed);
+	biome_grad_temperature = gradient_reserve(seed);
+	biome_grad_magic = gradient_reserve(seed);
+}
+
+
 int p_large = 30;
 int p_medium = 10;
 int p_small = 5;
 double threshold = -0.2;
 static void pass_shape(Map* map, long seed) {
-	OpenSimplexGradients* large = newOpenSimplexGradients(ose, seed + 1);
-	OpenSimplexGradients* medium = newOpenSimplexGradients(ose, seed + 2);
-	OpenSimplexGradients* small = newOpenSimplexGradients(ose, seed + 3);
+	OpenSimplexGradients* large = gradient_next(seed);
+	OpenSimplexGradients* medium = gradient_next(seed);
+	OpenSimplexGradients* small = gradient_next(seed);
+	OpenSimplexGradients* palette = gradient_next(seed);
 
 	foreach(x, y) {
+		Biome b = biome_get(x, y);
 		double warp = grad_noise(p_large, large, x, y) * 5.0;
 		double v = 
 			grad_noise(p_large, large, x, y)   * 0.6 +
 			grad_noise(p_medium, medium, x + warp, y + warp) * 0.3 +
 			grad_noise(p_small, small, x, y)   * 0.1
 		;
-		
-		if (v < threshold) {
+
+		double openness = biome_definitions[b].openness;
+		if (v < openness) {
 			map->tiles[y][x] = TILE_AIR;
-		} else {
-			map->tiles[y][x] = TILE_STONE;
+			continue;
 		}
+
+		double weight = (grad_noise(p_small, palette, x, y) + 1) * 0.5;
+		int tile = 0;
+		double* weights = biome_definitions[b].palette_weights;
+		while (weight - weights[tile] > 0 && tile + 1 < biome_definitions[b].palette_size) {
+			tile++;
+			weight -= weights[tile];
+		}
+		map->tiles[y][x] = biome_definitions[b].palette[tile];
 	}
-	free(large);
-	free(medium);
-	free(small);
 }
 
 
 NoisePass ore_passes[] = {
-	{.key = "DIRT", .tile = TILE_DIRT, .threshold = -0.4, .period = 6.0},
-	{.key = "COAL", .tile = TILE_COAL, .threshold = -0.4, .period = 6.0},
+	{.key = "COAL", .tile = TILE_COAL, .threshold = -0.3, .period = 6.0},
 };
 static const int passes_count = sizeof(ore_passes) / sizeof(ore_passes[0]);
 static void pass_ores(Map* map, long seed) {
-	OpenSimplexGradients* gradients[passes_count];
-	for (int i = 0; i < passes_count; i++)
-		gradients[i] = newOpenSimplexGradients(ose, seed + i * 10);
-
 	foreach(x, y) {
 		if (map->tiles[y][x] == TILE_AIR)
 			continue;
+		int head = gradient_push();
 		for (int i = 0; i < passes_count; i++) {
-			if (is_pass(ore_passes[i], gradients[i], x, y)) {
+			OpenSimplexGradients* grad_1 = gradient_next(seed);
+			OpenSimplexGradients* grad_2 = gradient_next(seed);
+			double v1 = grad_noise(ore_passes[i].period, grad_1, x, y);
+			double v2 = grad_noise(ore_passes[i].period, grad_2, x, y);
+			double v = v1 * v2;
+
+			if (v < ore_passes[i].threshold) {
 				map->tiles[y][x] = ore_passes[i].tile;
 				break;
 			}
 		}
+		gradient_pop(head);
 	}
-
-	for (int i = 0; i < passes_count; i++)
-		free(gradients[i]);
 }
 
 void worldgen_generate(Map* map, long seed) {
-	ose = initOpenSimplex();
+	if (ose == NULL)
+		ose = initOpenSimplex();
+	pass_biomes(map, seed);
+	pass_shape(map, seed);
+	pass_ores(map, seed);
 
-	pass_shape(map, seed + 1);
-	pass_ores(map, seed + 2);
-
-	free(ose);
-	ose = NULL;
+	gradients_free();
 }
 
 
-bool worldgen_debug() {
-	int y = 10;
-	int changed = 0;
-	changed += GuiSpinner((Rectangle){10, 10, 100, 30}, "L", &p_large, 1, 150, true);
-	changed += GuiSpinner((Rectangle){10, y += 35, 100, 30}, "M", &p_medium, 1, 50, true);
-	changed += GuiSpinner((Rectangle){10, y += 35, 100, 30}, "S", &p_small, 1, 50, true);
-	int threshold_i = threshold * 100;
-	changed += GuiSpinner((Rectangle){10, y += 35, 100, 30}, "T", &threshold_i, -100, 100, true);
+static int y = 0;
+static int selected_id = 0;
+static int current_id = 0;
+static bool dirty;
+void spinner(const char* label, int* value, int min, int max) {
+	current_id++;
+	int prev = *value;
+	if (GuiSpinner((Rectangle){50, y, 100, 30}, label, value, min, max, selected_id == current_id)) {
+		selected_id = current_id;
+	}
+	y += 35;
+	dirty = dirty || prev != *value;
+}
+void spinnerf(const char* label, double* value, double scale, int min, int max) {
+	int int_val = round(*value * scale);
+	spinner(label, &int_val, min * scale, max * scale);
+	*value = int_val / scale;
+}
 
-	threshold = threshold_i / 100.0;
-	return changed != 0;
+void gap() {
+	y += 20;
+}
+
+#define THRESHOLD 100.0
+bool worldgen_debug() {
+	y = 10;
+	dirty = false;
+	current_id = 0;
+	spinner(" Large", &p_large, 1, 150);
+	spinner("Medium", &p_medium, 1, 50);
+	spinner(" Small", &p_small, 1, 50);
+	spinnerf(" Thres", &threshold, 10, -1, 1);
+	gap();
+	spinnerf("Biome P", &biome_period, 1, 1, 200);
+	spinnerf("Biome F", &biome_fungal_treshold, 100, 0, 1);
+	spinnerf("Biome C", &biome_crystal_treshold, 100, 0, 1);
+
+	gap();
+	for (int i = 0; i < passes_count; i++) {
+		spinnerf(" Thresh", &ore_passes[i].threshold, 100, -1, 1);
+		spinner(" Period", &ore_passes[i].period, 0, 150);
+	}
+
+	return dirty;
 }

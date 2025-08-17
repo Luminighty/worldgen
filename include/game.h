@@ -9,6 +9,8 @@ typedef struct {
 	long seed;
 	int selected_pass;
 	Map map;
+	int x;
+	int y;
 } Game;
 
 void game_init();

@@ -9,7 +9,6 @@
 	for(int y = 0; y < MAP_HEIGHT; y++)\
 	for(int x = 0; x < MAP_WIDTH; x++)
 
-
 Map map_create() {
 	Map map = {0};
 	return map;
@@ -17,8 +16,9 @@ Map map_create() {
 
 
 void map_render(Map *map) {
-	foreach(x, y) {
-		Tile t = map->tiles[y][x];
+	for(int y = 0; y < SCREEN_HEIGHT; y++)
+	for(int x = 0; x < SCREEN_WIDTH; x++) {
+		Tile t = map->tiles[y + game.y][x + game.x];
 		Glyph g = tile_glyphs[t];
 		display_putchar(x, y, g, 1);
 	}

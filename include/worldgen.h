@@ -8,7 +8,7 @@
 typedef struct {
 	char key[8];
 	double threshold;
-	double period;
+	int period;
 	Tile tile;
 } NoisePass;
 
