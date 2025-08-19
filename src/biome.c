@@ -1,69 +1,91 @@
 #include "biome.h"
 #include "tile.h"
+#include "feature.h"
 
+#define FEAT_MOSS makeFeatureVein(.tile = TILE_MOSS, .frequency = 0.6, .size_min = 32, .size_max = 64)
+
+#define FEAT_GRASS makeFeatureSurface(.tile = TILE_GRASS, .depth = 1)
+#define FEAT_DIRT makeFeatureSurface(.tile = TILE_DIRT, .depth = 3)
+#define FEAT_DIRT_PATCH makeFeatureBlob(.tile = TILE_DIRT, .frequency = 0.3, .size_min = 1, .size_max = 12)
+
+
+#define FEAT_COAL makeFeatureVein(.tile = TILE_COAL, .frequency = 0.4, .size_min = 4, .size_max = 10)
+#define FEAT_IRON makeFeatureVein(.tile = TILE_IRON, .frequency = 0.4, .size_min = 3, .size_max = 5)
+#define FEAT_DIAMOND makeFeatureVein(.tile = TILE_DIAMOND, .frequency = 0.2, .size_min = 3, .size_max = 5)
+
+#define FEAT_GEM(_tile) makeFeatureVein(.tile = (_tile), .frequency = 0.7, .size_min = 3, .size_max = 5)
 
 BiomeDefinition biome_definitions[] = {
 	[BIOME_PLAINS] = {
 		.key = "PLAINS",
-		.palette =   {TILE_STONE, TILE_DIRT, TILE_MOSS },
-		.palette_weights = { 0.7,       0.05,  0.25 },
-		.palette_size = 3,
+		.solid = TILE_STONE,
+		.features = {
+			FEAT_COAL, FEAT_IRON, FEAT_DIAMOND,
+			FEAT_DIRT_PATCH,
+			FEAT_MOSS,
+			FEAT_DIRT, FEAT_GRASS,
+		},
 		.openness = -0.2,
 	},
 	[BIOME_FUNGAL] = {
 		.key = "FUNGAL",
-		.palette =   {TILE_FUNGAL, TILE_FUNGAL_MOSS, TILE_MOSS, TILE_DIRT, },
-		.palette_weights = { 0.3,  0.3,   0.2,   0.2, },
-		.palette_size = 4,
+		.solid = TILE_FUNGAL,
+		.features = {
+			FEAT_COAL,
+			makeFeatureSurface(.tile=TILE_FUNGAL_MOSS, .depth=2)
+		},
 		.openness = -0.1,
 	},
 	[BIOME_CRYSTAL] = {
 		.key = "CRYSTAL",
-		.palette =   {TILE_STONE, TILE_CRYSTAL, TILE_EMERALD, TILE_AMETHYST, TILE_RUBY },
-		.palette_weights = { 0.2,          0.4,  0.2,   0.1,   0.1  },
-		.palette_size = 5,
+		.solid = TILE_CRYSTAL,
+		.features = {
+			FEAT_DIAMOND,
+			FEAT_GEM(TILE_EMERALD),
+			FEAT_GEM(TILE_AMETHYST),
+			FEAT_GEM(TILE_RUBY),
+		},
 		.openness = -0.4,
 	},
 	[BIOME_MAGMA] = {
 		.key = "MAGMA",
-		.palette =   {TILE_STONE, TILE_MAGMA, TILE_HELLSTONE, },
-		.palette_weights = { 0.35,       0.5,           0.1  },
-		.palette_size = 3,
+		.solid = TILE_MAGMA,
+		.features = {
+			FEAT_COAL, FEAT_IRON, FEAT_DIAMOND,
+		},
 		.openness = -0.4,
 	},
 	[BIOME_ASH_FOREST] = {
 		.key = "ASH_FOREST",
-		.palette =   {TILE_STONE, TILE_CHARCOAL, TILE_COAL, },
-		.palette_weights = { 0.2,           0.5,       0.3,  },
-		.palette_size = 3,
+		.solid = TILE_CHARCOAL,
+		.features = {
+			FEAT_COAL, FEAT_IRON, FEAT_DIAMOND,
+		},
 		.openness = 0.05,
 	},
 	[BIOME_GAS] = {
 		.key = "GAS",
-		.palette =   {TILE_STONE, TILE_STEAM, TILE_MAGMA },
-		.palette_weights = { 0.6,       0.3,  0.1  },
-		.palette_size = 3,
+		.solid = TILE_STONE,
 		.openness = -0.4,
 	},
 	[BIOME_ICE] = {
 		.key = "ICE",
-		.palette = {TILE_STONE, TILE_ICE, TILE_SNOW },
-		.palette_weights = { 0.3,      0.5, 0.2},
-		.palette_size = 3,
+		.solid = TILE_ICE,
+		.features = {
+			FEAT_COAL, FEAT_IRON, FEAT_DIAMOND,
+			makeFeatureSurface(.tile=TILE_SNOW),
+			makeFeatureBlob(.tile = TILE_SNOW, .frequency = 0.9, .size_min = 4, .size_max = 12)
+		},
 		.openness = -0.25,
 	},
 	[BIOME_VOID] = {
 		.key = "VOID",
-		.palette = {TILE_STONE, TILE_VOIDSTONE, TILE_VOID },
-		.palette_weights = { 0.5, 0.3, 0.2},
-		.palette_size = 3,
+		.solid = TILE_STONE,
 		.openness = -0.2,
 	},
 	[BIOME_HELLSCAPE] = {
 		.key = "HELLSCAPE",
-		.palette = {TILE_STONE, TILE_MAGMA, TILE_HELLSTONE },
-		.palette_weights = { 0.2, 0.3, 0.5},
-		.palette_size = 3,
+		.solid = TILE_STONE,
 		.openness = -0.6,
 	},
 };

@@ -19,8 +19,9 @@
 
 
 #define PAL_STONE		PAL_GRAY(0x69)
-#define PAL_FUNGUS		RGB(0x55, 0x11, 0x99)
-#define PAL_FUNGUS_2		RGB(0x11, 0xBB, 0xDD)
+#define PAL_STONE_DARK		PAL_GRAY(0x55)
+#define PAL_FUNGUS		RGB(0x66, 0x33, 0x66)
+#define PAL_FUNGUS_2		RGB(0x22, 0x11, 0x22)
 
 
 #define color_into_raylib(color) (Color){.r = ((color) >> 16) & 0xFF, .g = ((color) >> 8) & 0xFF, .b = (color) & 0xFF, .a=255 }

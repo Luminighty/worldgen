@@ -1,4 +1,5 @@
 #include "worldgen.h"
+#include "feature.h"
 #include "tile.h"
 #include <stdbool.h>
 #include <stdio.h>
@@ -69,6 +70,9 @@ static inline bool is_pass(NoisePass pass, OpenSimplexGradients* gradient, int x
 	for(int y = 0; y < MAP_HEIGHT; y++)\
 	for(int x = 0; x < MAP_WIDTH; x++)
 
+#define foreach_chunk(x, y, chunk)\
+	for(int y = 0; y < MAP_HEIGHT; y+=(chunk))\
+	for(int x = 0; x < MAP_WIDTH; x+=(chunk))
 
 static int biome_grad_moisture = 0;
 static int biome_grad_temperature = 0;
@@ -140,7 +144,6 @@ static void pass_shape(Map* map, long seed) {
 	OpenSimplexGradients* large = gradient_next(seed);
 	OpenSimplexGradients* medium = gradient_next(seed);
 	OpenSimplexGradients* small = gradient_next(seed);
-	OpenSimplexGradients* palette = gradient_next(seed);
 
 	foreach(x, y) {
 		Biome b = biome_get(x, y);
@@ -156,41 +159,58 @@ static void pass_shape(Map* map, long seed) {
 			map->tiles[y][x] = TILE_AIR;
 			continue;
 		}
-
-		double weight = (grad_noise(p_small, palette, x, y) + 1) * 0.5;
-		int tile = 0;
-		double* weights = biome_definitions[b].palette_weights;
-		while (weight - weights[tile] > 0 && tile + 1 < biome_definitions[b].palette_size) {
-			tile++;
-			weight -= weights[tile];
-		}
-		map->tiles[y][x] = biome_definitions[b].palette[tile];
+		map->tiles[y][x] = biome_definitions[b].solid;
 	}
 }
 
 
-NoisePass ore_passes[] = {
-	{.key = "COAL", .tile = TILE_COAL, .threshold = -0.3, .period = 6.0},
-};
-static const int passes_count = sizeof(ore_passes) / sizeof(ore_passes[0]);
-static void pass_ores(Map* map, long seed) {
-	foreach(x, y) {
-		if (map->tiles[y][x] == TILE_AIR)
-			continue;
-		int head = gradient_push();
-		for (int i = 0; i < passes_count; i++) {
-			OpenSimplexGradients* grad_1 = gradient_next(seed);
-			OpenSimplexGradients* grad_2 = gradient_next(seed);
-			double v1 = grad_noise(ore_passes[i].period, grad_1, x, y);
-			double v2 = grad_noise(ore_passes[i].period, grad_2, x, y);
-			double v = v1 * v2;
 
-			if (v < ore_passes[i].threshold) {
-				map->tiles[y][x] = ore_passes[i].tile;
-				break;
-			}
+Feature features[] = {
+makeFeatureVein(.tile = TILE_COAL, .frequency = 0.4, .size_min = 4, .size_max = 10),
+makeFeatureVein(.tile = TILE_IRON, .frequency = 0.4, .size_min = 3, .size_max = 5),
+makeFeatureVein(.tile = TILE_DIAMOND, .frequency = 0.2, .size_min = 3, .size_max = 5),
+makeFeatureVein(.tile = TILE_EMERALD, .frequency = 0.2, .size_min = 3, .size_max = 5),
+makeFeatureSurface(.tile = TILE_GRASS, .depth = 1),
+};
+
+static inline Biome biome_from_chunk(int x, int y, int chunk_size) {
+	short biome_value[BIOME_SIZE] = {0};
+	const static int corner_value = 1;
+	const static int edge_value = 3;
+	const static int center_value = 10;
+	biome_value[biome_get(x, y)] += corner_value;
+	biome_value[biome_get(x + chunk_size, y)] += corner_value;
+	biome_value[biome_get(x, y + chunk_size)] += corner_value;
+	biome_value[biome_get(x + chunk_size, y + chunk_size)] += corner_value;
+
+	int half = chunk_size / 2;
+	biome_value[biome_get(x + half, y)] += edge_value;
+	biome_value[biome_get(x, y + half)] += edge_value;
+	biome_value[biome_get(x + half, y + chunk_size)] += edge_value;
+	biome_value[biome_get(x + chunk_size, y + half)] += edge_value;
+
+	biome_value[biome_get(x + half, y + half)] += center_value;
+
+	Biome biome = 0;
+	short max_value = 0;
+	for (int i = 1; i < BIOME_SIZE; i++) {
+		if (biome_value[i] > max_value) {
+			max_value = biome_value[i];
+			biome = i;
 		}
-		gradient_pop(head);
+	}
+	return biome;
+}
+
+static void pass_features(Map* map, long seed) {
+	const int feature_c = sizeof(features) / sizeof(Feature);
+	foreach_chunk(x, y, 16) {
+		Biome b = biome_from_chunk(x, y, 16);
+		for (int i = 0; i < MAX_FEATURE_SIZE; i++) {
+			if (biome_definitions[b].features[i].kind == FEATURE_NONE)
+				break;
+			feature_apply(map, seed, x, y, 16, biome_definitions[b].features[i]);
+		}
 	}
 }
 
@@ -199,7 +219,8 @@ void worldgen_generate(Map* map, long seed) {
 		ose = initOpenSimplex();
 	pass_biomes(map, seed);
 	pass_shape(map, seed);
-	pass_ores(map, seed);
+	// pass_ores(map, seed);
+	pass_features(map, seed);
 
 	gradients_free();
 }
@@ -242,11 +263,11 @@ bool worldgen_debug() {
 	spinnerf("Biome F", &biome_fungal_treshold, 100, 0, 1);
 	spinnerf("Biome C", &biome_crystal_treshold, 100, 0, 1);
 
-	gap();
-	for (int i = 0; i < passes_count; i++) {
-		spinnerf(" Thresh", &ore_passes[i].threshold, 100, -1, 1);
-		spinner(" Period", &ore_passes[i].period, 0, 150);
-	}
+	// gap();
+	// for (int i = 0; i < passes_count; i++) {
+	// 	spinnerf(" Thresh", &ore_passes[i].threshold, 100, -1, 1);
+	// 	spinner(" Period", &ore_passes[i].period, 0, 150);
+	// }
 
 	return dirty;
 }

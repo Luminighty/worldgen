@@ -19,6 +19,7 @@ int main() {
 		game_draw();
 		EndDrawing();
 	}
+	game_destroy();
 
 	return 0;
 }

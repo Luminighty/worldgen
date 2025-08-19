@@ -8,7 +8,7 @@
 typedef struct {
 	long seed;
 	int selected_pass;
-	Map map;
+	Map* map;
 	int x;
 	int y;
 } Game;
@@ -16,6 +16,7 @@ typedef struct {
 void game_init();
 void game_draw();
 void game_update();
+void game_destroy();
 
 extern Game game;
 

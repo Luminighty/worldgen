@@ -2,17 +2,15 @@
 #define BIOME_H
 
 #include "tile.h"
+#include "feature.h"
 
-#define MAX_PALETTE_SIZE 8
-
+#define MAX_FEATURE_SIZE 32
 
 typedef struct {
     char key[32];
+    Tile solid;
 
-    // NOTE: Might need to add separate palettes, for now this is for solids
-    Tile palette[MAX_PALETTE_SIZE];
-    double palette_weights[MAX_PALETTE_SIZE];
-    int palette_size;
+    Feature features[MAX_FEATURE_SIZE];
 
     double openness;
 } BiomeDefinition;
@@ -29,7 +27,8 @@ typedef enum {
 	BIOME_FUNGAL,
 	BIOME_PLAINS,
 	BIOME_CRYSTAL,
-	BIOME_ICE
+	BIOME_ICE,
+	BIOME_SIZE,
 } Biome;
 
 

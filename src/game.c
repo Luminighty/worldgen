@@ -5,29 +5,34 @@
 #include "worldgen.h"
 #include <raylib.h>
 #include <stdbool.h>
-#include <stdio.h>
-#include <stdlib.h>
 #include "raygui.h"
 
 Game game = {0};
 RenderTexture2D render_target;
 
 static void regen_world() {
-	game.map = map_create();
-	worldgen_generate(&game.map, game.seed);
-	map_draw_border(&game.map);
+	worldgen_generate(game.map, game.seed);
+	map_draw_border(game.map);
 	GuiLoadStyle("assets/raygui_style_terminal.rgs");
 }
 
 void game_init() {
+	game.map = map_create();
+	game.x = (MAP_WIDTH - SCREEN_WIDTH) / 2;
+	game.y = (MAP_HEIGHT - SCREEN_HEIGHT) / 2;
 	render_target = LoadRenderTexture(WINDOW_WIDTH, WINDOW_HEIGHT);
 	regen_world();
+}
+
+void game_destroy() {
+	map_destroy(game.map);
+
 }
 
 void game_update() {
 	bool dirty = false;
 	if (IsKeyReleased(KEY_ENTER)) {
-		game.seed = rand();
+		game.seed++;
 		dirty = true;
 	}
 	static const int STEP = 4;
@@ -52,7 +57,7 @@ static const Rectangle RENDER_DEST = {
 };
 void game_draw() {
 	display_clear();
-	map_render(&game.map);
+	map_render(game.map);
 
 	BeginTextureMode(render_target);
 	display_render();

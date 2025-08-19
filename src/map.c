@@ -3,15 +3,22 @@
 #include "game.h"
 #include "tile.h"
 #include "palette.h"
+#include <stdlib.h>
+#include <memory.h>
 
 
 #define foreach(x, y)\
 	for(int y = 0; y < MAP_HEIGHT; y++)\
 	for(int x = 0; x < MAP_WIDTH; x++)
 
-Map map_create() {
-	Map map = {0};
+Map* map_create() {
+	Map* map = malloc(sizeof(Map));
+	memset(map, 0, sizeof(Map));
 	return map;
+}
+
+void map_destroy(Map* map) {
+	free(map);
 }
 
 

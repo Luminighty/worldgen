@@ -15,7 +15,8 @@ typedef struct {
 } Map;
 
 
-Map map_create();
+Map* map_create();
+void map_destroy(Map* map);
 
 void map_render(Map* map);
 void map_dig(Map* map, int x, int y);
