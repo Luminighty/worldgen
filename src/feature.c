@@ -12,6 +12,12 @@ static inline bool is_air(Map* map, int x, int y) {
 	return map->tiles[y][x] == TILE_AIR;
 }
 
+static inline void set_tile(Map* map, int x, int y, Tile tile) {
+	if (x < 0 || y < 0 || x >= MAP_WIDTH || y >= MAP_HEIGHT)
+		return;
+	map->tiles[y][x] = tile;
+}
+
 static inline void set_if_solid(Map* map, int x, int y, Tile tile) {
 	if (x < 0 || y < 0 || x >= MAP_WIDTH || y >= MAP_HEIGHT)
 		return;
@@ -113,12 +119,53 @@ static inline void feature_surface(
 	fflush(stdout);
 }
 
+static inline void feature_tree(
+	Map* map, long seed,
+	int start_x, int start_y,
+	int chunk_size,
+	FeatureTree feature
+) {
+	int rnd = random(seed, feature.trunk * feature.cap);
+	int width_var = feature.width_max - feature.width_min;
+	int height_var = feature.height_max - feature.height_min;
+	int width = random3d(seed, start_x, start_y, rnd++) % width_var + feature.width_min;
+	int height = random3d(seed, start_x, start_y, rnd++) % height_var + feature.height_min;
+
+	bool found = false;
+	int y = start_y + chunk_size - 1;
+	int x = start_x;
+	for (; !found && y >= start_y; y--)
+	for (x = start_x; x < start_x + chunk_size; x++) {
+		if (is_air(map, x, y) && !is_air(map, x, y + 1)) {
+			found = true;
+			break;
+		}
+	}
+	if (!found)
+		return;
+
+	y--;
+	x--;
+	for (int offset_x = -width; offset_x <= width; offset_x++) {
+		set_tile(map, x + offset_x, y - height - 1, TILE_AIR);
+		set_tile(map, x + offset_x, y - height, feature.cap);
+		set_tile(map, x + offset_x, y - height + 1, TILE_AIR);
+	}
+	for (int offset_y = 1; offset_y < height; offset_y++) {
+		set_tile(map, x - 1, y - offset_y, TILE_AIR);
+		set_tile(map, x, y - offset_y, feature.trunk);
+		set_tile(map, x + 1, y - offset_y, TILE_AIR);
+	}
+
+}
+
 void feature_apply(Map* map, long seed, int x, int y, int chunk_size, Feature feature) {
 	switch (feature.kind) {
 	case FEATURE_NONE: break;
 	case FEATURE_VEIN: feature_vein(map, seed, x, y, chunk_size, feature.as.vein); break;
 	case FEATURE_SURFACE: feature_surface(map, seed, x, y, chunk_size, feature.as.surface); break;
 	case FEATURE_BLOB: feature_blob(map, seed, x, y, chunk_size, feature.as.blob); break;
+	case FEATURE_TREE: feature_tree(map, seed, x, y, chunk_size, feature.as.tree); break;
 	default:
 		printf("UNDEFINED FEATURE %d\n", feature.kind);
 		break;

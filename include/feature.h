@@ -11,7 +11,17 @@ typedef enum {
     FEATURE_VEIN,
     FEATURE_BLOB,
     FEATURE_SURFACE,
+    FEATURE_TREE,
 } FeatureKind;
+
+typedef struct {
+    Tile trunk;
+    Tile cap;
+    int height_min;
+    int height_max;
+    int width_min;
+    int width_max;
+} FeatureTree;
 
 
 typedef struct {
@@ -42,6 +52,7 @@ typedef struct {
 	FeatureVein vein;
 	FeatureBlob blob;
 	FeatureSurface surface;
+	FeatureTree tree;
     } as;
 } Feature;
 
@@ -52,6 +63,7 @@ void feature_apply(Map* map, long seed, int chunk_x, int chunk_y, int chunk_size
 #define makeFeatureVein(...) ((Feature){.kind = FEATURE_VEIN, .as={.vein={__VA_ARGS__}}})
 #define makeFeatureBlob(...) ((Feature){.kind = FEATURE_BLOB, .as={.blob={__VA_ARGS__}}})
 #define makeFeatureSurface(...) ((Feature){.kind = FEATURE_SURFACE, .as={.surface={.depth=1, __VA_ARGS__}}})
+#define makeFeatureTree(...) ((Feature){.kind = FEATURE_TREE, .as={.tree={__VA_ARGS__}}})
 
 
 #endif // FEATURE_H

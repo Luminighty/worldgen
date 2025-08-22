@@ -9,9 +9,7 @@
 typedef struct {
     char key[32];
     Tile solid;
-
     Feature features[MAX_FEATURE_SIZE];
-
     double openness;
 } BiomeDefinition;
 

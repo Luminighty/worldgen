@@ -21,6 +21,8 @@ Glyph tile_glyphs[] = {
 
 [TILE_FUNGAL] = glyph(0xB0, PAL_FUNGUS_2, PAL_FUNGUS),
 [TILE_FUNGAL_MOSS] = glyph('#', PAL_GREEN, PAL_FUNGUS),
+[TILE_FUNGAL_TRUNK] = glyph(0xBA, PAL_WHITE, PAL_BLACK),
+[TILE_FUNGAL_CAP] = glyph(0xB2, PAL_RED, PAL_WHITE),
 
 [TILE_ICE] = glyph(0x0F, PAL_BLUE, RGB(0x5, 0x10, 0xB2)),
 [TILE_SNOW] = glyph(0xB0, PAL_BLUE, PAL_WHITE),

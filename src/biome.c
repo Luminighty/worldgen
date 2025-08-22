@@ -7,6 +7,7 @@
 #define FEAT_GRASS makeFeatureSurface(.tile = TILE_GRASS, .depth = 1)
 #define FEAT_DIRT makeFeatureSurface(.tile = TILE_DIRT, .depth = 3)
 #define FEAT_DIRT_PATCH makeFeatureBlob(.tile = TILE_DIRT, .frequency = 0.3, .size_min = 1, .size_max = 12)
+#define FEAT_DIRT_PATCH makeFeatureBlob(.tile = TILE_DIRT, .frequency = 0.3, .size_min = 1, .size_max = 12)
 
 
 #define FEAT_COAL makeFeatureVein(.tile = TILE_COAL, .frequency = 0.4, .size_min = 4, .size_max = 10)
@@ -31,8 +32,14 @@ BiomeDefinition biome_definitions[] = {
 		.key = "FUNGAL",
 		.solid = TILE_FUNGAL,
 		.features = {
+			makeFeatureBlob(.tile = TILE_FUNGAL_MOSS, .frequency = 0.8, .size_min = 5, .size_max = 12),
 			FEAT_COAL,
-			makeFeatureSurface(.tile=TILE_FUNGAL_MOSS, .depth=2)
+			makeFeatureSurface(.tile=TILE_FUNGAL_MOSS, .depth=2),
+			makeFeatureTree(
+				.cap=TILE_FUNGAL_CAP, .trunk=TILE_FUNGAL_TRUNK,
+				.height_min = 3, .height_max = 7,
+				.width_min = 2, .width_max = 4,
+			)
 		},
 		.openness = -0.1,
 	},

@@ -77,9 +77,11 @@ static inline bool is_pass(NoisePass pass, OpenSimplexGradients* gradient, int x
 static int biome_grad_moisture = 0;
 static int biome_grad_temperature = 0;
 static int biome_grad_magic = 0;
-static double biome_fungal_treshold = 0.6;
-static double biome_crystal_treshold = 0.7;
 static double biome_period = 100;
+static double biome_hot_thresh = 0.7;
+static double biome_cold_thresh = -0.7;
+static double biome_moist_thresh = 0.4;
+static double biome_dry_thresh = -0.6;
 
 static Biome biome_get(int x, int y) {
 	OpenSimplexGradients* moist_grad = gradient_get(biome_grad_moisture);
@@ -104,10 +106,10 @@ static Biome biome_get(int x, int y) {
 		MOIST_MOIST,
 	} moist_kind = MOIST_NORM;
 
-	if (temp > 0.7) temp_kind = TEMP_HOT;
-	if (temp < -0.7) temp_kind = TEMP_COLD;
-	if (moist > 0.4) moist_kind = MOIST_MOIST;
-	if (moist < -0.6) moist_kind = MOIST_DRY;
+	if (temp > biome_hot_thresh) temp_kind = TEMP_HOT;
+	if (temp < biome_cold_thresh) temp_kind = TEMP_COLD;
+	if (moist > biome_moist_thresh) moist_kind = MOIST_MOIST;
+	if (moist < biome_dry_thresh) moist_kind = MOIST_DRY;
 
 	switch (moist_kind) {
 	case MOIST_DRY: switch (temp_kind) {
@@ -260,8 +262,10 @@ bool worldgen_debug() {
 	spinnerf(" Thres", &threshold, 10, -1, 1);
 	gap();
 	spinnerf("Biome P", &biome_period, 1, 1, 200);
-	spinnerf("Biome F", &biome_fungal_treshold, 100, 0, 1);
-	spinnerf("Biome C", &biome_crystal_treshold, 100, 0, 1);
+	spinnerf("Biome T+", &biome_hot_thresh, 10, -1, 1);
+	spinnerf("Biome T-", &biome_cold_thresh, 10, -1, 1);
+	spinnerf("Biome M+", &biome_moist_thresh, 10, -1, 1);
+	spinnerf("Biome M-", &biome_dry_thresh, 10, -1, 1);
 
 	// gap();
 	// for (int i = 0; i < passes_count; i++) {
